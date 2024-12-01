@@ -38,7 +38,7 @@ int part1(list_t list)
     return sum;
 }
 
-int part2(list_t list)
+int part2(const list_t& list)
 {
     std::map<int, int> histogram;
     for(int i=0; i<list.a.size(); ++i){
