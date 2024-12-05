@@ -76,7 +76,7 @@ int part2(manual_t& manual)
     int sum = 0;
     for(auto& pages : manual.pages){
         if(!correct_order(pages, manual.rules)){
-            std::partial_sort(pages.begin(), pages.begin() + pages.size()/2 + 1, pages.end(), [&](int a, int b){ // only need middle element
+            std::nth_element(pages.begin(), pages.begin() + pages.size()/2, pages.end(), [&](int a, int b){ // only need middle element
                 return ordered(a, b, manual.rules);
             });
             sum += pages[pages.size()/2];
