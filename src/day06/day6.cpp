@@ -112,7 +112,7 @@ size_t part2(const map_t& map)
                     break;
                 }
                 seen_obstacles.insert({new_pos, dir});
-                dir = { -dir.y, dir.x };
+                dir = rotate(dir);
             }else{
                 curr_pos = new_pos;
             }
