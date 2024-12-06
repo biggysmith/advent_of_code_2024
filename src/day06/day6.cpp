@@ -86,7 +86,7 @@ size_t part1(const map_t& map)
     return patrol(map).size();
 }
 
-int part2(const map_t& map)
+size_t part2(const map_t& map)
 {
     set_t visited = patrol(map);
     visited.erase(map.guard_pos); // erase guard pos
