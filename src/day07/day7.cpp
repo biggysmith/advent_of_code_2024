@@ -17,13 +17,13 @@ equations_t load_input(const std::string& file){
     std::ifstream fs(file);
     std::string line;
     while (std::getline(fs, line)) {
-        uint64_t val = std::stoll(line.substr(0, line.find(':')));
+        uint64_t val = std::stoull(line.substr(0, line.find(':')));
         ret.push_back(equation_t());
         ret.back().val = val;
         std::stringstream ss(line.substr(line.find(':')+2));
         std::string str;
         while (std::getline(ss, str, ' ')) {
-            ret.back().nums.push_back(std::stoll(str));
+            ret.back().nums.push_back(std::stoull(str));
         }
     }
     return ret;
