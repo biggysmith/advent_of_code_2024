@@ -16,7 +16,7 @@ pos_t operator+(const pos_t& a,const pos_t& b){ return { a.x+b.x, a.y+b.y }; }
 pos_t operator-(const pos_t& a,const pos_t& b){ return { a.x-b.x, a.y-b.y }; }
 
 struct map_t{
-    std::map<char, std::vector<pos_t>> antennas_to_positions;
+    std::map<char, std::vector<pos_t>> frequency_to_positions;
     int width = 0;
     int height = 0;
 
@@ -32,7 +32,7 @@ map_t load_input(const std::string& file){
     while (std::getline(fs, line)) {
         for(int x=0; x<line.size(); ++x){
             if(line[x] != '.'){
-                ret.antennas_to_positions[line[x]].push_back({ x, ret.height });
+                ret.frequency_to_positions[line[x]].push_back({ x, ret.height });
             }
         }
         ret.width = std::max(ret.width, (int)line.size());
@@ -45,7 +45,7 @@ size_t part1(const map_t& map)
 {
     std::set<pos_t> antinodes;
 
-    for(auto& [antenna, positions] : map.antennas_to_positions)
+    for(auto& [freq, positions] : map.frequency_to_positions)
     {
         for(int i=0; i<positions.size(); ++i) {
             for(int j=i+1; j<positions.size(); ++j) {
@@ -71,7 +71,7 @@ size_t part2(const map_t& map)
 {
     std::set<pos_t> antinodes;
 
-    for(auto& [antenna, positions] : map.antennas_to_positions)
+    for(auto& [freq, positions] : map.frequency_to_positions)
     {
         for(int i=0; i<positions.size(); ++i) {
             for(int j=i+1; j<positions.size(); ++j) {
