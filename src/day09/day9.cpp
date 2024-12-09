@@ -77,13 +77,12 @@ size_t part2(const std::vector<int>& disk_map)
         }
     }
 
-    for(int i=(int)used.size()-1; i>=0; --i) { // shift used ranges into suitable free ranges
-        auto& curr = used[i];
-        size_t used_size = curr.size();
+    for(auto used_it = used.rbegin(); used_it != used.rend(); ++used_it) { // shift used ranges into suitable free ranges
+        size_t used_size = used_it->size();
 
-        for (auto it = free.begin(); it != free.end() && it->begin < curr.begin;) {
+        for (auto it = free.begin(); it != free.end() && it->begin < used_it->begin;) {
             if(it->size() >= used_size) {
-                curr = { curr.id, it->begin, it->begin + used_size };
+                *used_it = { used_it->id, it->begin, it->begin + used_size };
                 it->begin += used_size;
                 it->empty() ? (it = free.erase(it)) : ++it;
                 break;
