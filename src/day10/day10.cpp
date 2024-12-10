@@ -3,9 +3,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <set>
+#include <map>
 #include <algorithm>
 #include <queue>
+#include <numeric>
 
 struct pos_t{
     int x, y;
@@ -43,8 +44,7 @@ map_t load_input(const std::string& file){
 
 auto bfs(const map_t& map, const pos_t& src)
 {    
-    std::set<pos_t> end_heights;
-    int rating = 0;
+    std::map<pos_t, int> end_heights;
 
     std::queue<pos_t> q;
     q.push(src);
@@ -55,12 +55,11 @@ auto bfs(const map_t& map, const pos_t& src)
         q.pop();
 
         if(map.get(curr) == 9){
-            rating++;
-            end_heights.insert(curr);
+            end_heights[curr]++;
             continue;
         }
 
-        for(auto& d : std::vector<pos_t>{ {0, 1}, {1, 0}, {0, -1}, {-1, 0} }){
+        for(auto& d : { pos_t{0, 1}, pos_t{1, 0}, pos_t{0, -1}, pos_t{-1, 0} }){
             pos_t new_pos = curr + d;
             if(map.in_grid(new_pos) && map.get(new_pos) == map.get(curr)+1){
                 q.push(new_pos);
@@ -68,6 +67,7 @@ auto bfs(const map_t& map, const pos_t& src)
         }
     }
 
+    int rating = std::accumulate(end_heights.begin(), end_heights.end(), 0, [](int acc, auto& eh){ return acc + eh.second; });
     return std::make_pair(end_heights.size(), rating);
 }
 
