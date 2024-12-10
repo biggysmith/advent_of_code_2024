@@ -68,7 +68,7 @@ auto bfs(const map_t& map, const pos_t& trail_head)
     }
 
     int rating = 0;
-    for(auto& [end_pos, trail_count] : trail_ends){ rating += trail_count; }
+    for(auto& [trail_end, trail_count] : trail_ends){ rating += trail_count; }
     return std::make_pair(trail_ends.size(), rating);
 }
 
