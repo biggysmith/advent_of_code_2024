@@ -42,12 +42,12 @@ map_t load_input(const std::string& file){
     return ret;
 }
 
-auto bfs(const map_t& map, const pos_t& src)
+auto bfs(const map_t& map, const pos_t& trail_head)
 {    
-    std::map<pos_t, int> end_heights;
+    std::map<pos_t, int> trail_ends;
 
     std::queue<pos_t> q;
-    q.push(src);
+    q.push(trail_head);
 
     while (!q.empty()) 
     {
@@ -55,7 +55,7 @@ auto bfs(const map_t& map, const pos_t& src)
         q.pop();
 
         if(map.get(curr) == 9){
-            end_heights[curr]++;
+            trail_ends[curr]++;
             continue;
         }
 
@@ -67,8 +67,9 @@ auto bfs(const map_t& map, const pos_t& src)
         }
     }
 
-    int rating = std::accumulate(end_heights.begin(), end_heights.end(), 0, [](int acc, auto& eh){ return acc + eh.second; });
-    return std::make_pair(end_heights.size(), rating);
+    int rating = 0;
+    for(auto& [end_pos, trail_count] : trail_ends){ rating += trail_count; }
+    return std::make_pair(trail_ends.size(), rating);
 }
 
 auto process(const map_t& map)
