@@ -57,6 +57,7 @@ auto flood(const map_t& map, std::set<pos_t>& occupied, const pos_t& start)
         }
         
         plants.insert(curr);
+        occupied.insert(curr);
 
         auto diff = [&](const pos_t& p){ return !map.in_grid(p) || map.get(p) != map.get(curr); };
         auto same = [&](const pos_t& p){ return map.in_grid(p) && map.get(p) == map.get(curr); };      
@@ -78,8 +79,6 @@ auto flood(const map_t& map, std::set<pos_t>& occupied, const pos_t& start)
         if(diff(curr + pos_t{ 0,  1 }) && same(curr + pos_t{  1,  1 })) { corners++; } // top right inner
         if(diff(curr + pos_t{ 0, -1 }) && same(curr + pos_t{ -1, -1 })) { corners++; } // bottom left inner
         if(diff(curr + pos_t{ 0, -1 }) && same(curr + pos_t{  1, -1 })) { corners++; } // bottom right inner
-
-        occupied.insert(curr);
 
         for(auto& d : { pos_t{0, 1}, pos_t{1, 0}, pos_t{0, -1}, pos_t{-1, 0} }){
             pos_t new_pos = curr + d;
