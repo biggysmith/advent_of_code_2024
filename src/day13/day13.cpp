@@ -39,7 +39,8 @@ uint64_t process(const machines_t& machines, uint64_t offset)
 {
     double sum = 0;
 
-    for(auto& machine : machines){
+    for(auto& machine : machines)
+    {
         dmat22 mat(
             (double)machine.ax, (double)machine.bx,
             (double)machine.ay, (double)machine.by
