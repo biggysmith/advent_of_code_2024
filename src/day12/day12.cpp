@@ -22,7 +22,6 @@ struct map_t{
 
     bool in_grid(const pos_t& p) const { return p.x >= 0 && p.x < width && p.y >= 0 && p.y < height; }
     char get(const pos_t& p) const { return data[p.y * width + p.x]; }
-    char& get(const pos_t& p) { return data[p.y * width + p.x]; }
 };
 
 map_t load_input(const std::string& file){
