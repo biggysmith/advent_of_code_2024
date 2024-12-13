@@ -103,6 +103,7 @@ auto process(const map_t& map)
             if(!occupied.count({x,y})){
                 sums += flood(map, occupied, {x, y});
             }
+
         }
     }
 
