@@ -63,7 +63,7 @@ int gps(const map_t& map, char box){
     return sum;
 }
 
-bool try_move(map_t& map, const pos_t& curr_pos, const pos_t& next_pos, const pos_t& dir, bool move)
+bool try_move(map_t& map, const pos_t& curr_pos, const pos_t& next_pos, const pos_t& dir, bool move=false)
 {
     if(map.get(next_pos) == '[' || map.get(next_pos) == ']' || map.get(next_pos) == 'O') // hit a box
     {
@@ -93,6 +93,10 @@ bool try_move(map_t& map, const pos_t& curr_pos, const pos_t& next_pos, const po
         return true;
     }
     return true; // can potentially move (e.g. mid box)
+}
+
+void do_move(map_t& map, const pos_t& curr_pos, const pos_t& next_pos, const pos_t& dir){
+    try_move(map, curr_pos, next_pos, dir, true);
 }
 
 map_t expand_map(const map_t& map){
@@ -129,8 +133,8 @@ int process(const map_t& in_map, bool expand)
     pos_t pos = map.bot_pos;
     for(auto move : map.moves){
         pos_t next_pos = pos + dirs[move];
-        if(try_move(map, pos, next_pos, dirs[move], false)){
-            try_move(map, pos, next_pos, dirs[move], true);
+        if(try_move(map, pos, next_pos, dirs[move])){
+            do_move(map, pos, next_pos, dirs[move]);
             pos = next_pos;
         };
     }
