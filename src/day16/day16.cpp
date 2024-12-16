@@ -65,7 +65,7 @@ struct step_t {
     int id;
 };
 
-bool operator>(const step_t& a, const step_t& b){ return std::tie(a.score, a.pos, a.dir) > std::tie(b.score, b.pos, b.dir); }
+bool operator>(const step_t& a, const step_t& b){ return std::tie(a.score, a.pos) > std::tie(b.score, b.pos); }
 
 struct step_hash {
     size_t operator()(const pos_t& pos) const {
@@ -79,33 +79,37 @@ struct big_int{
 
 auto process(const map_t& map) 
 {
-    //scoped_timer t;
+    scoped_timer t;
 
-    std::priority_queue<step_t, std::vector<step_t>, std::greater<>> pq;
+    std::priority_queue<step_t, std::vector<step_t>, std::greater<>> q;
+
     std::vector<std::vector<std::unordered_map<pos_t,big_int,step_hash>>> dist(map.height, std::vector<std::unordered_map<pos_t,big_int,step_hash>>(map.width));  // Distance map
 
-    std::map<int, std::set<pos_t>> paths;
-    int id = 0;
+    int path_id = 0;
 
-    pq.push({map.start, {1,0}, 0, 0}); 
+    q.push({map.start, {1,0}, 0, 0}); 
     dist[map.start.x][map.start.y][{1,0}].i = 0;
 
-    int shortestDistance = -1;
+    int shortest_distance = -1;
 
     std::unordered_set<pos_t,step_hash> super_set;
     super_set.insert(map.start);
 
-    while (!pq.empty()) {
-        auto [pos, dir, cost, curr_id] = pq.top();
-        pq.pop();
+    std::vector<std::vector<pos_t>> paths;
+    paths.push_back(std::vector<pos_t>());
 
-        paths[curr_id].insert(pos);
+    while (!q.empty()) {
+        auto [pos, dir, cost, curr_id] = q.top();
+        q.pop();
+
+        //paths[curr_id].insert(pos);
+        paths[curr_id].push_back(pos);
 
         if (pos == map.end) {       
-            if (shortestDistance == -1) {
-                shortestDistance = cost;
+            if (shortest_distance == -1) {
+                shortest_distance = cost;
             }
-            if(cost == shortestDistance){
+            if(cost == shortest_distance){
                 super_set.insert(paths[curr_id].begin(), paths[curr_id].end());
             }
             continue;
@@ -118,13 +122,14 @@ auto process(const map_t& map)
 
             if (map.in_grid(new_pos) && map.get(new_pos)=='.' && new_cost <= dist[new_pos.x][new_pos.y][new_dir].i) {
                 if (new_cost <= dist[new_pos.x][new_pos.y][new_dir].i) {
-                    //pq.push({newCost, nx, ny, newDir});
                     if(new_dir == dir){
-                        pq.push({new_pos, new_dir, new_cost, curr_id});
+                        q.push({new_pos, new_dir, new_cost, curr_id});
                     }else{
-                        id++;
-                        pq.push({new_pos, new_dir, new_cost, id});
-                        paths[id] = paths[curr_id];
+                        path_id++;
+                        q.push({new_pos, new_dir, new_cost, path_id});
+                        paths.push_back(std::vector<pos_t>());
+                        paths[path_id] = paths[curr_id];
+
                     }
                 }
                 dist[new_pos.x][new_pos.y][new_dir].i = new_cost;
@@ -132,7 +137,7 @@ auto process(const map_t& map)
         }
     }
 
-    return std::make_pair(shortestDistance, super_set.size());
+    return std::make_pair(shortest_distance, super_set.size());
 }
 
 void main()
