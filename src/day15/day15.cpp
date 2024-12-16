@@ -74,7 +74,7 @@ bool try_move(map_t& map, const pos_t& curr_pos, const pos_t& next_pos, const po
                 if(!try_move(map, next_pos+dirs['>'], (next_pos+dirs['>'])+dir, dir, move)) { return false; } // try move ]
             }
 
-            if(map.get(next_pos) == ']') { // try move both ] and [
+            if(map.get(next_pos) == ']') {
                 if(!try_move(map, next_pos, next_pos+dir, dir, move)) { return false; } // try move ]
                 if(!try_move(map, next_pos+dirs['<'], (next_pos+dirs['<'])+dir, dir, move)) { return false; } // try move [
             }
