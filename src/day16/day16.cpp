@@ -95,14 +95,12 @@ auto process(const map_t& map)
             pos_t new_pos = curr.pos + new_dir;
             int new_score = curr.score + (new_dir == curr.dir ? 1 : 1001);
 
-            if (map.in_grid(new_pos) && map.get(new_pos)=='.' && new_score <= dist[new_pos][new_dir].i) {
-                if (new_score <= dist[new_pos][new_dir].i) {
-                    if(new_dir == curr.dir){
-                        q.push({new_pos, new_dir, new_score, curr.path_id});
-                    }else{
-                        q.push({new_pos, new_dir, new_score, (int)paths.size()});
-                        paths.push_back(paths[curr.path_id]);
-                    }
+            if (map.in_grid(new_pos) && map.get(new_pos) == '.' && new_score <= dist[new_pos][new_dir].i) {
+                if(new_dir == curr.dir){
+                    q.push({new_pos, new_dir, new_score, curr.path_id});
+                }else{
+                    q.push({new_pos, new_dir, new_score, (int)paths.size()});
+                    paths.push_back(paths[curr.path_id]);
                 }
                 dist[new_pos][new_dir].i = new_score;
             }
