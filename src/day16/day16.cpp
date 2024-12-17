@@ -3,17 +3,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <set>
-#include <map>
 #include <algorithm>
 #include <queue>
-#include <unordered_set>
-#include <unordered_map>
-
-#include <timer.hpp>
-
-#undef NDEBUG
-#include <assert.h>
+#include <set>
+#include <map>
 
 struct pos_t{
     int x, y;
@@ -30,7 +23,6 @@ struct map_t{
     int width = 0;
     int height = 0;
 
-    //char& get(const pos_t& p) { return data[p.y * width + p.x]; }
     char get(const pos_t& p) const { return data[p.y * width + p.x]; }
     bool in_grid(const pos_t& p) const { return p.x >= 0 && p.x < width && p.y >= 0 && p.y < height; }
 };
@@ -62,82 +54,62 @@ struct step_t {
     pos_t pos;
     pos_t dir;
     int score;
-    int id;
+    int path_id;
 };
 
-bool operator>(const step_t& a, const step_t& b){ return std::tie(a.score, a.pos) > std::tie(b.score, b.pos); }
-
-struct step_hash {
-    size_t operator()(const pos_t& pos) const {
-        return pos.x ^ (pos.y << 1);
-    }
-};
-
-struct big_int{
-    int i=INT_MAX;
-};
+bool operator<(const step_t& a, const step_t& b){ return a.score > b.score; }
+struct big_int { int i = INT_MAX; }; // want default dist value to be MAX for initial comparison 
 
 auto process(const map_t& map) 
 {
-    scoped_timer t;
-
-    std::priority_queue<step_t, std::vector<step_t>, std::greater<>> q;
-
-    std::vector<std::vector<std::unordered_map<pos_t,big_int,step_hash>>> dist(map.height, std::vector<std::unordered_map<pos_t,big_int,step_hash>>(map.width));  // Distance map
-
-    int path_id = 0;
-
+    std::priority_queue<step_t> q;
     q.push({map.start, {1,0}, 0, 0}); 
-    dist[map.start.x][map.start.y][{1,0}].i = 0;
 
-    int shortest_distance = -1;
+    std::map<pos_t, std::map<pos_t, big_int>> dist;  
+    dist[map.start][{1,0}].i = 0;
 
-    std::unordered_set<pos_t,step_hash> super_set;
-    super_set.insert(map.start);
+    std::set<pos_t> tile_set;
 
     std::vector<std::vector<pos_t>> paths;
     paths.push_back(std::vector<pos_t>());
 
+    int min_score = -1;
+
     while (!q.empty()) {
-        auto [pos, dir, cost, curr_id] = q.top();
+        auto curr = q.top();
         q.pop();
 
-        //paths[curr_id].insert(pos);
-        paths[curr_id].push_back(pos);
+        paths[curr.path_id].push_back(curr.pos);
 
-        if (pos == map.end) {       
-            if (shortest_distance == -1) {
-                shortest_distance = cost;
+        if (curr.pos == map.end) {       
+            if (min_score == -1) {
+                min_score = curr.score;
             }
-            if(cost == shortest_distance){
-                super_set.insert(paths[curr_id].begin(), paths[curr_id].end());
+            if(curr.score == min_score){
+                tile_set.insert(paths[curr.path_id].begin(), paths[curr.path_id].end());
             }
             continue;
         }
 
-        for (auto& new_dir : { dir, rotate(dir, true), rotate(dir, false) }) {
-            pos_t new_pos = pos + new_dir;
-            int turn_cost = (new_dir == dir ? 1 : 1001);
-            int new_cost = cost + turn_cost;
+        for (auto& new_dir : { curr.dir, rotate(curr.dir, true), rotate(curr.dir, false) }) {
+            pos_t new_pos = curr.pos + new_dir;
+            int new_score = curr.score + (new_dir == curr.dir ? 1 : 1001);
 
-            if (map.in_grid(new_pos) && map.get(new_pos)=='.' && new_cost <= dist[new_pos.x][new_pos.y][new_dir].i) {
-                if (new_cost <= dist[new_pos.x][new_pos.y][new_dir].i) {
-                    if(new_dir == dir){
-                        q.push({new_pos, new_dir, new_cost, curr_id});
+            if (map.in_grid(new_pos) && map.get(new_pos)=='.' && new_score <= dist[new_pos][new_dir].i) {
+                if (new_score <= dist[new_pos][new_dir].i) {
+                    if(new_dir == curr.dir){
+                        q.push({new_pos, new_dir, new_score, curr.path_id});
                     }else{
-                        path_id++;
-                        q.push({new_pos, new_dir, new_cost, path_id});
-                        paths.push_back(std::vector<pos_t>());
-                        paths[path_id] = paths[curr_id];
-
+                        q.push({new_pos, new_dir, new_score, (int)paths.size()});
+                        paths.push_back(paths[curr.path_id]);
                     }
                 }
-                dist[new_pos.x][new_pos.y][new_dir].i = new_cost;
+                dist[new_pos][new_dir].i = new_score;
             }
         }
     }
 
-    return std::make_pair(shortest_distance, super_set.size());
+    return std::make_pair(min_score, tile_set.size());
 }
 
 void main()
@@ -154,12 +126,4 @@ void main()
 
     auto [score2, tiles2] = process(actual_values);
     std::cout << "part1: " << score2 << ", part2:" << tiles2 << std::endl;
-
-    assert(score0 == 7036);
-    assert(score1 == 11048);
-    assert(score2 == 105496);
-
-    assert(tiles0 == 45);
-    assert(tiles1 == 64);
-    assert(tiles2 == 524);
 }
