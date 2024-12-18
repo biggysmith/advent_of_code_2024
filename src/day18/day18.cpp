@@ -3,42 +3,49 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <set>
-#include <map>
+#include <unordered_set>
+#include <unordered_map>
 #include <algorithm>
 #include <queue>
-#include <timer.hpp>
 
 struct pos_t{
     int x, y;
 };
 
-bool operator<(const pos_t& a, const pos_t& b){ return std::tie(a.x, a.y) < std::tie(b.x, b.y); }
 bool operator==(const pos_t& a, const pos_t& b){ return std::tie(a.x, a.y) == std::tie(b.x, b.y); }
 pos_t operator+(const pos_t& a, const pos_t& b){ return { a.x + b.x, a.y + b.y }; }
 
-using bytes_t = std::map<pos_t,int>;
+struct hasher {
+    std::size_t operator()(const pos_t& pos) const {
+        return pos.y*71 + pos.x;
+    }
+};
+
+using set_t = std::unordered_set<pos_t,hasher>;
+
+struct bytes_t {
+    std::vector<pos_t> list;
+    std::unordered_map<pos_t,int,hasher> map;
+    pos_t end_pos;
+
+    bool in_bounds(const pos_t& pos) const { return pos.x >= 0 && pos.x <= end_pos.x && pos.y >= 0 && pos.y <= end_pos.y; }
+    bool corrupted(const pos_t& pos, int nanosec) const { return map.count(pos) && map.at(pos) < nanosec; }
+};
 
 bytes_t load_input(const std::string& file){
     bytes_t ret;
     std::ifstream fs(file);
     int i=0;
+    ret.end_pos = { INT_MIN, INT_MIN };
     std::string line;
     while (std::getline(fs, line)) {
         pos_t pos;
         sscanf_s(line.c_str(), "%d,%d", &pos.x, &pos.y);
-        ret[pos] = i++;
+        ret.map[pos] = i++;
+        ret.list.push_back(pos);
+        ret.end_pos = { std::max(ret.end_pos.x, pos.x), std::max(ret.end_pos.y, pos.y) };
     }
     return ret;
-}
-
-bool in_bounds(const pos_t& pos, const pos_t& max_dims){
-    return pos.x >= 0 && pos.x <= max_dims.x && pos.y >= 0 && pos.y <= max_dims.y;
-}
-
-bool byte_present(const bytes_t& bytes, const pos_t& pos, int ns){
-    //return bytes.count(pos) && ns > bytes.at(pos);
-    return bytes.count(pos) && bytes.at(pos) <= ns;
 }
 
 struct step_t{
@@ -46,33 +53,30 @@ struct step_t{
     int nanosec;
 };
 
-bool operator<(const step_t& a, const step_t& b){ return std::tie(a.pos) < std::tie(b.pos); }
-
-auto bfs(const bytes_t& bytes, const pos_t& start, const pos_t& end, int byte_count)
+auto bfs(const bytes_t& bytes, int byte_count)
 {    
     std::queue<step_t> q;
-    q.push({start,0});
+    q.push({{0,0}, 0});
 
-    std::set<step_t> visited;
+    set_t visited;
 
     while (!q.empty()) 
     {
         auto curr = q.front();
         q.pop();
 
-        if(curr.pos == end){
-            std::cout << curr.nanosec << std::endl;
-            continue;
+        if(curr.pos == bytes.end_pos){
+            return curr.nanosec;
         }
 
-        if(visited.count(curr)){
+        if(visited.count(curr.pos)){
             continue;
         }
-        visited.insert(curr);
+        visited.insert(curr.pos);
 
         for(auto& d : { pos_t{0, 1}, pos_t{1, 0}, pos_t{0, -1}, pos_t{-1, 0} }){
             pos_t new_pos = curr.pos + d;
-            if(/*curr.nanosec < 12 &&*/ in_bounds(new_pos, end) && !byte_present(bytes, new_pos, byte_count)){
+            if(bytes.in_bounds(new_pos) && !bytes.corrupted(new_pos, byte_count)){
                 q.push({new_pos, curr.nanosec+1});
             }
         }
@@ -81,91 +85,44 @@ auto bfs(const bytes_t& bytes, const pos_t& start, const pos_t& end, int byte_co
     return 0;
 }
 
-int part1(const bytes_t& bytes, const pos_t& end, int byte_count)
+int part1(const bytes_t& bytes, int byte_count)
 {
-    std::cout << std::endl;
-
-    bfs(bytes, {0,0}, end, byte_count);
-
-    return 0;
+    return bfs(bytes, byte_count);
 }
 
-auto bfs2(const bytes_t& bytes, const pos_t& start, const pos_t& end, int byte_count)
-{    
-    std::queue<pos_t> q;
-    q.push(start);
-
-    std::set<pos_t> visited;
-
-    while (!q.empty()) 
-    {
-        auto curr = q.front();
-        q.pop();
-
-        if(curr == end){
-            return true;
-        }
-
-        if(visited.count(curr)){
-            continue;
-        }
-        visited.insert(curr);
-
-        for(auto& d : { pos_t{0, 1}, pos_t{1, 0}, pos_t{0, -1}, pos_t{-1, 0} }){
-            pos_t new_pos = curr + d;
-            if(in_bounds(new_pos, end) && !byte_present(bytes, new_pos, byte_count)){
-                q.push(new_pos);
-            }
-        }
-    }
-
-    return false;
-}
-
-bool dfs(const bytes_t& bytes, const pos_t& curr, const pos_t& end, int byte_count, std::set<pos_t>& visited) 
+bool dfs(const bytes_t& bytes, const pos_t& curr, int byte_count, set_t& visited) 
 {
-    if (curr == end) {
+    if (curr == bytes.end_pos) {
         return true;
     }
 
-    if(visited.count(curr)){
-        return false;
-    }
     visited.insert(curr);
 
     for(auto& d : { pos_t{0, 1}, pos_t{1, 0}, pos_t{0, -1}, pos_t{-1, 0} }){
         pos_t new_pos = curr + d;
-        if(in_bounds(new_pos, end) && !byte_present(bytes, new_pos, byte_count)){
-            bool found = dfs(bytes, new_pos, end, byte_count, visited);
-            if(found){
+        if(!visited.count(new_pos) && bytes.in_bounds(new_pos) && !bytes.corrupted(new_pos, byte_count)){
+            if(dfs(bytes, new_pos, byte_count, visited)){
                 return true;
             }
         }
     }
 
+    visited.erase(curr);
     return false;
 }
 
-
-int part2(const bytes_t& bytes, const pos_t& end)
+std::string part2(const bytes_t& bytes)
 {
-    scoped_timer t;
-
-    for(int i=0; i<bytes.size(); ++i){
-        std::set<pos_t> visited;
-        bool found_exit = dfs(bytes, {0,0}, end, i, visited);
-        if(!found_exit){
-            for (auto& [pos, idx] : bytes) {
-                if (idx == i) {
-                    std::cout << "Blocked: " << pos.x << "," << pos.y << std::endl;
-                    return 1;
-                }
-            }
-
+    pos_t pos;
+    for(int i=0; i<bytes.list.size(); ++i){
+        set_t visited;
+        if(!dfs(bytes, {0,0}, i, visited)) {
+            pos = bytes.list[i-1];
+            break;
         }
     }
 
-    return 0;
+    return std::to_string(pos.x) + "," + std::to_string(pos.y);
 }
 
 void main()
@@ -173,9 +130,9 @@ void main()
     auto test_values = load_input("../src/day18/test_input.txt");
     auto actual_values = load_input("../src/day18/input.txt");
 
-    std::cout << "part1: " << part1(test_values, {6,6}, 12) << std::endl;
-    std::cout << "part1: " << part1(actual_values, {70,70}, 1024) << std::endl;
+    std::cout << "part1: " << part1(test_values, 12) << std::endl;
+    std::cout << "part1: " << part1(actual_values, 1024) << std::endl;
 
-    std::cout << "part2: " << part2(test_values, {6,6}) << std::endl;
-    std::cout << "part2: " << part2(actual_values, {70,70}) << std::endl;
+    std::cout << "part2: " << part2(test_values) << std::endl;
+    std::cout << "part2: " << part2(actual_values) << std::endl;
 }
