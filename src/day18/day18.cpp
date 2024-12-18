@@ -114,9 +114,8 @@ bool dfs(const bytes_t& bytes, const pos_t& curr, int byte_count, set_t& visited
 std::string part2(const bytes_t& bytes)
 {
     pos_t pos;
-    for(int i=0; i<bytes.list.size(); ++i){
-        set_t visited;
-        if(!dfs(bytes, {0,0}, i, visited)) {
+    for(int i=0; i<bytes.list.size(); ++i) {
+        if(!dfs(bytes, {0,0}, i, set_t())) {
             pos = bytes.list[i-1];
             break;
         }
