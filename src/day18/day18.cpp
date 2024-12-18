@@ -121,7 +121,6 @@ std::string part2(const bytes_t& bytes)
             break;
         }
     }
-
     return std::to_string(pos.x) + "," + std::to_string(pos.y);
 }
 
