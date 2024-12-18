@@ -114,15 +114,12 @@ bool dfs(const bytes_t& bytes, const pos_t& curr, int byte_count, set_t& visited
 
 std::string part2(const bytes_t& bytes)
 {
-    std::vector<int> indices(bytes.list.size());
-    std::iota(indices.begin(), indices.end(), 0);
-
-    auto pp = std::partition_point(indices.begin(), indices.end(), [&](int i){
-        return dfs(bytes, {0,0}, i, set_t());
+    auto pp = std::partition_point(bytes.list.begin(), bytes.list.end(), [&](auto& pos){
+        return dfs(bytes, {0,0}, bytes.map.at(pos), set_t());
     });
-    pos_t pos = bytes.list[std::distance(indices.begin(), pp) - 1];
 
-    return std::to_string(pos.x) + "," + std::to_string(pos.y);
+    pp = std::prev(pp);
+    return std::to_string(pp->x) + "," + std::to_string(pp->y);
 }
 
 void main()
