@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <queue>
+#include <numeric>
 
 struct pos_t{
     int x, y;
@@ -113,13 +114,14 @@ bool dfs(const bytes_t& bytes, const pos_t& curr, int byte_count, set_t& visited
 
 std::string part2(const bytes_t& bytes)
 {
-    pos_t pos;
-    for(int i=0; i<bytes.list.size(); ++i) {
-        if(!dfs(bytes, {0,0}, i, set_t())) {
-            pos = bytes.list[i-1];
-            break;
-        }
-    }
+    std::vector<int> indices(bytes.list.size());
+    std::iota(indices.begin(), indices.end(), 0);
+
+    auto pp = std::partition_point(indices.begin(), indices.end(), [&](int i){
+        return dfs(bytes, {0,0}, i, set_t());
+    });
+    pos_t pos = bytes.list[std::distance(indices.begin(), pp) - 1];
+
     return std::to_string(pos.x) + "," + std::to_string(pos.y);
 }
 
