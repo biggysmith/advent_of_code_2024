@@ -41,11 +41,11 @@ size_t match_pattern(const std::string& towel, const list_t& patterns, cache_t& 
     size_t count = 0;
     for(auto& pattern : patterns) {
         if(towel.find(pattern) == 0) {
-            std::string next_towel = towel.substr(pattern.size());
-            if(next_towel.empty()) { 
+            std::string next_sub_towel = towel.substr(pattern.size());
+            if(next_sub_towel.empty()) { 
                 count++; // reached end of towel design, meaning we have a possible way to make design, so increment count
             }else{
-                count += match_pattern(next_towel, patterns, cache); // continue searching...
+                count += match_pattern(next_sub_towel, patterns, cache); // continue searching...
             }
         }
     }
