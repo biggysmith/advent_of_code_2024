@@ -59,8 +59,7 @@ auto process(const towels_t& towels)
     size_t valid = 0;
     size_t sum = 0;
     for(auto& towel : towels.designs){
-        cache_t cache;
-        size_t count = match_pattern(towel, towels.patterns, cache);
+        size_t count = match_pattern(towel, towels.patterns, cache_t());
         valid += count > 0;
         sum += count;
     }
