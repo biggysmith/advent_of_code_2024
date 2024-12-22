@@ -40,63 +40,12 @@ struct big_int { int i=INT_MAX; };
 auto bfs(const pos_t& start, const pos_t& end, const pos_t& max_pos, const pos_t& invalid)
 {    
     std::map<pos_t,big_int> dist;
-    //std::map<pos_t, std::vector<std::vector<pos_t>>> paths;
-    std::map<pos_t, std::vector<std::vector<pos_t>>> paths;
-
-    std::queue<pos_t> q;
-    q.push(start);
-
-    dist[start].i = 0;
-    paths[start].push_back({start});
-
-    auto in_bounds = [&](const pos_t& p){
-        return p != invalid && p.x >= 0 && p.x <= max_pos.x && p.y >= 0 && p.y <= max_pos.y;
-    };
-
-    while(!q.empty()) {
-        auto pos = q.front();
-        q.pop();
-
-        for(auto& d : { pos_t{0, 1}, pos_t{1, 0}, pos_t{0, -1}, pos_t{-1, 0} }) {
-            pos_t new_pos = pos + d;
-
-            if(in_bounds(new_pos)) {
-                int new_dist = dist[pos].i + 1;
-                if(new_dist < dist[new_pos].i) { // found smaller path
-                    dist[new_pos].i = new_dist;
-                    paths[new_pos].clear();
-                    for(auto& path : paths[pos]) {
-                        std::vector<pos_t> newPath = path;
-                        newPath.push_back(new_pos);
-                        paths[new_pos].push_back(newPath);
-                    }
-                    q.push(new_pos);
-                }else if(new_dist == dist[new_pos].i) { // found another same sized path
-                    for(auto& path : paths[pos]) {
-                        std::vector<pos_t> newPath = path;
-                        newPath.push_back(new_pos);
-                        paths[new_pos].push_back(newPath);
-                    }
-                }
-            }
-        }
-    }
-
-    return paths[end]; // all the shortest paths to end
-}
-
-
-auto bfs2(const pos_t& start, const pos_t& end, const pos_t& max_pos, const pos_t& invalid)
-{    
-    std::map<pos_t,big_int> dist;
-    //std::map<pos_t, std::vector<std::vector<pos_t>>> paths;
     std::map<pos_t, std::vector<std::string>> paths;
 
     std::queue<pos_t> q;
     q.push(start);
 
     dist[start].i = 0;
-    //paths[start].push_back({start});
     paths[start].push_back({'A'}); // start from A
 
     auto in_bounds = [&](const pos_t& p){
@@ -145,14 +94,31 @@ struct num_path_t{
 };
 bool operator<(const num_path_t& a, const num_path_t& b){ return std::tie(a.src, a.dst) < std::tie(b.src, b.dst); }
 
-void key_paths(const std::string& code, int idx, std::string& path, const key_to_pos_t& keys, const std::map<num_path_t, std::vector<std::string>>& paths, std::set<std::string>& path_set){
+struct key_path_t{
+    char src, dst;
+};
+bool operator<(const key_path_t& a, const key_path_t& b){ return std::tie(a.src, a.dst) < std::tie(b.src, b.dst); }
+
+void key_paths(const std::string& code, int idx, std::string& curr_path, const key_to_pos_t& keys, const std::map<num_path_t, std::vector<std::string>>& paths, std::set<std::string>& path_set){
     if(idx == code.size()){
-        path_set.insert(path);
+        path_set.insert(curr_path);
         return;
     }
 
-    for(auto& sub_path : paths.at({keys.at(idx-1<0 ? 'A' : code[idx-1]), keys.at(code[idx])})){
-        key_paths(code, idx+1, path + sub_path, keys, paths, path_set);
+    for(auto& path : paths.at({keys.at(idx-1<0 ? 'A' : code[idx-1]), keys.at(code[idx])})){
+        key_paths(code, idx+1, curr_path + path, keys, paths, path_set);
+    }
+}
+
+void key_paths2(const std::string& code, int idx, std::string& curr_path, const std::map<key_path_t, std::vector<std::string>>& paths, std::set<std::string>& path_set){
+    if(idx == code.size()){
+        path_set.insert(curr_path);
+        return;
+    }
+
+    //for(auto& path : paths.at({keys.at(idx-1<0 ? 'A' : code[idx-1]), keys.at(code[idx])})){
+    for(auto& path : paths.at({idx-1<0 ? 'A' : code[idx-1], code[idx]})){
+        key_paths2(code, idx+1, curr_path + path, paths, path_set);
     }
 }
 
@@ -187,6 +153,29 @@ size_t key_path_length(const std::string& path, const key_to_pos_t& keys, const 
     return ret;
 }
 
+size_t key_path_length2(const std::string& path, const std::map<key_path_t, std::vector<std::string>>& paths, int depth, int max_depth, cache_t& cache){
+    if(cache.count({path,depth})){
+        return cache[{path,depth}];
+    }
+
+    if(depth == max_depth){
+        cache[{path,depth}] = path.size();
+        return path.size();
+    }
+
+    size_t ret = 0;
+    for(int i=0; i<path.size(); ++i){
+        size_t sub_ret = UINT64_MAX;
+        for(auto& sub : paths.at({i-1<0 ? 'A' : path[i-1], path[i]})){
+            sub_ret = std::min(sub_ret, key_path_length2(sub, paths, depth+1, max_depth, cache));
+        }
+        ret += sub_ret;
+    }
+
+    cache[{path,depth}] = ret;
+    return ret;
+}
+
 size_t process(const std::vector<std::string>& codes, int num_bots)
 {
     key_to_pos_t num_keys {
@@ -200,47 +189,31 @@ size_t process(const std::vector<std::string>& codes, int num_bots)
         {'<', { 0, 1 }}, {'v', { 1, 1 }}, {'>', { 2, 1 }} };
 
     std::map<num_path_t, std::vector<std::string>> num_paths;
+    std::map<num_path_t, std::vector<std::string>> dir_paths;
 
-    std::map<num_path_t, std::string> dir_paths;
-    std::map<num_path_t, std::vector<std::string>> dir_paths_many;
+    std::map<key_path_t, std::vector<std::string>> num_paths2;
+    std::map<key_path_t, std::vector<std::string>> dir_paths2;
 
     for(auto i=dir_keys.begin(); i!=dir_keys.end(); ++i){
         for(auto j=i; j!=dir_keys.end(); ++j){
         
             {
-                //auto paths2 = bfs(i->second, j->second, { 2,1 }, { 0,0 });
-                auto paths3 = bfs2(i->second, j->second, { 2,1 }, { 0,0 });
-                dir_paths_many[{i->second, j->second}].insert(
-                    dir_paths_many[{i->second, j->second}].end(), paths3.begin(), paths3.end()
+                auto paths = bfs(i->second, j->second, { 2,1 }, { 0,0 });
+                dir_paths[{i->second, j->second}].insert(
+                    dir_paths[{i->second, j->second}].end(), paths.begin(), paths.end()
                 );
-
-                /*for(auto& path2 : paths2){
-                    std::string path_str;
-                    for(int i=1; i<path2.size(); ++i) {
-                        path_str += dirs[path2[i] - path2[i-1]];
-                    }
-                    path_str += 'A';
-
-                    dir_paths_many[{i->second, j->second}].push_back(path_str);
-                }*/
+                dir_paths2[{i->first, j->first}].insert(
+                    dir_paths2[{i->first, j->first}].end(), paths.begin(), paths.end()
+                );
             }
 
             {
-                /*auto paths2 = bfs(j->second, i->second, { 2,1 }, { 0,0 });
-
-                for(auto& path2 : paths2){
-                    std::string path_str;
-                    for(int i=1; i<path2.size(); ++i) {
-                        path_str += dirs[path2[i] - path2[i-1]];
-                    }
-                    path_str += 'A';
-
-                    dir_paths_many[{j->second, i->second}].push_back(path_str);
-                }*/
-
-                auto paths3 = bfs2(j->second, i->second, { 2,1 }, { 0,0 });
-                dir_paths_many[{j->second, i->second}].insert(
-                    dir_paths_many[{j->second, i->second}].end(), paths3.begin(), paths3.end()
+                auto paths = bfs(j->second, i->second, { 2,1 }, { 0,0 });
+                dir_paths[{j->second, i->second}].insert(
+                    dir_paths[{j->second, i->second}].end(), paths.begin(), paths.end()
+                );
+                dir_paths2[{j->first, i->first}].insert(
+                    dir_paths2[{j->first, i->first}].end(), paths.begin(), paths.end()
                 );
 
             }
@@ -253,31 +226,22 @@ size_t process(const std::vector<std::string>& codes, int num_bots)
         
             {
                 auto paths = bfs(i->second, j->second, { 2,3 }, { 0,3 });
-
-                for(auto& path : paths){
-                    std::string path_str;
-                    for(int i = 1; i<path.size(); ++i) {
-                        path_str += dirs[path[i] - path[i-1]];
-                    }
-                    path_str += 'A';
-
-                    num_paths[{i->second, j->second}].push_back(path_str);
-
-                }
+                num_paths[{i->second, j->second}].insert(
+                    num_paths[{i->second, j->second}].end(), paths.begin(), paths.end()
+                );
+                num_paths2[{i->first, j->first}].insert(
+                    num_paths2[{i->first, j->first}].end(), paths.begin(), paths.end()
+                );
             }
 
             {
                 auto paths = bfs(j->second, i->second, { 2,3 }, { 0,3 });
-
-                for(auto& path : paths){
-                    std::string path_str;
-                    for(int i = 1; i<path.size(); ++i) {
-                        path_str += dirs[path[i] - path[i-1]];
-                    }
-                    path_str += 'A';
-
-                    num_paths[{j->second, i->second}].push_back(path_str);
-                }
+                num_paths[{j->second, i->second}].insert(
+                    num_paths[{j->second, i->second}].end(), paths.begin(), paths.end()
+                );
+                num_paths2[{j->first, i->first}].insert(
+                    num_paths2[{j->first, i->first}].end(), paths.begin(), paths.end()
+                );
             }
 
         }
@@ -287,16 +251,15 @@ size_t process(const std::vector<std::string>& codes, int num_bots)
     for(auto& code : codes)
     {
         std::set<std::string> paths; 
-        key_paths(code, 0, std::string(), num_keys, num_paths, paths);
+        //key_paths(code, 0, std::string(), num_keys, num_paths, paths);
+        key_paths2(code, 0, std::string(), num_paths2, paths);
 
-        size_t len3 = UINT64_MAX;
+        size_t len = UINT64_MAX;
         for(auto& path : paths){
-            size_t new_len = key_path_length(path, dir_keys, dir_paths_many, 0, num_bots, cache_t());
-            len3 = std::min(len3, new_len);
+            //len = std::min(len, key_path_length(path, dir_keys, dir_paths, 0, num_bots, cache_t()));
+            len = std::min(len, key_path_length2(path, dir_paths2, 0, num_bots, cache_t()));
         }
-
-        size_t num = std::stoi(code.substr(0,3));
-        sum += len3*num;
+        sum += len * std::stoi(code.substr(0,3));
     }
 
     return sum;
