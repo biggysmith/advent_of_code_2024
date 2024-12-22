@@ -103,10 +103,6 @@ auto bfs(const bimap_t& map, const pos_t& max_pos, const pos_t& invalid, const p
 
     std::map<pos_t, pos_t> parent;
 
-    if(start == pos_t{2,0} && end == pos_t{0,1}){
-        std::cout << "hello" << std::endl;
-    }
-
     auto in_bounds = [&](const pos_t& p){
         if(p == invalid){
             return false;
@@ -318,6 +314,110 @@ std::string process_key_pad(const std::string& code, const bimap_t& keys, const 
     return path;
 }
 
+void process_key_pad_many(const std::string& code, int idx, std::string& path, const bimap_t& keys, const std::map<num_path_t, std::vector<std::string>>& paths, std::set<std::string>& path_set){
+
+    if(idx == code.size()){
+        path_set.insert(path);
+        return;
+    }
+
+    for(auto& sub_path : paths.at({keys.key_to_pos.at(idx-1<0 ? 'A' : code[idx-1]), keys.key_to_pos.at(code[idx])})){
+        process_key_pad_many(code, idx+1, path + sub_path, keys, paths, path_set);
+    }
+}
+
+std::string process_key_pad_recursive(const std::string& code, const bimap_t& keys, const std::map<num_path_t, std::string>& paths, int depth, int max_depth){
+    std::string path;
+    path += paths.at({keys.key_to_pos.at('A'), keys.key_to_pos.at(code[0])});
+    for(int i=1; i<code.size(); ++i){
+        char a = code[i-1];
+        char b = code[i];
+        path += paths.at({keys.key_to_pos.at(a), keys.key_to_pos.at(b)});
+    }
+    if(depth < max_depth){
+        path = process_key_pad_recursive(path, keys, paths, depth+1, max_depth);
+    }
+    return path;
+}
+
+std::string process_key_pad_recursive2(const std::string& code, const bimap_t& keys, const std::map<num_path_t, std::string>& paths, int depth, int max_depth){
+    if(depth == max_depth){
+        return code;
+    }
+
+    std::string path;
+    path += process_key_pad_recursive2(paths.at({keys.key_to_pos.at('A'), keys.key_to_pos.at(code[0])}), keys, paths, depth+1, max_depth);
+    for(int i=1; i<code.size(); ++i){
+        char a = code[i-1];
+        char b = code[i];
+        path += process_key_pad_recursive2(paths.at({keys.key_to_pos.at(a), keys.key_to_pos.at(b)}), keys, paths, depth+1, max_depth);
+    }
+    return path;
+}
+
+struct cache_entry_t{
+    std::string str;
+    int depth;
+};
+bool operator<(const cache_entry_t& a, const cache_entry_t& b){ return std::tie(a.str, a.depth) < std::tie(b.str, b.depth); };
+
+using cache_t = std::map<cache_entry_t, size_t>;
+
+size_t process_key_pad_recursive_size(const std::string& code, const bimap_t& keys, const std::map<num_path_t, std::string>& paths, int depth, int max_depth, cache_t& cache){
+    if(cache.count({code,depth})){
+        //std::cout << "cached!" << std::endl; 
+        return cache[{code,depth}];
+    }
+
+    if(depth == max_depth){
+        cache[{code,depth}] = code.size();
+        return code.size();
+    }
+
+    size_t ret = 0;
+    ret += process_key_pad_recursive_size(paths.at({keys.key_to_pos.at('A'), keys.key_to_pos.at(code[0])}), keys, paths, depth+1, max_depth, cache);
+    for(int i=1; i<code.size(); ++i){
+        char a = code[i-1];
+        char b = code[i];
+        ret += process_key_pad_recursive_size(paths.at({keys.key_to_pos.at(a), keys.key_to_pos.at(b)}), keys, paths, depth+1, max_depth, cache);
+    }
+
+    cache[{code,depth}] = ret;
+    return ret;
+}
+
+size_t process_key_pad_recursive_size_smallest(const std::string& code, const bimap_t& keys, const std::map<num_path_t, std::vector<std::string>>& paths, int depth, int max_depth, cache_t& cache){
+    if(cache.count({code,depth})){
+        //std::cout << "cached!" << std::endl; 
+        return cache[{code,depth}];
+    }
+
+    if(depth == max_depth){
+        cache[{code,depth}] = code.size();
+        return code.size();
+    }
+
+    size_t ret = 0;
+    size_t sub_ret = UINT64_MAX;
+    //ret += process_key_pad_recursive_size_smallest(paths.at({keys.key_to_pos.at('A'), keys.key_to_pos.at(code[0])}), keys, paths, depth+1, max_depth, cache);
+    for(auto& sub : paths.at({keys.key_to_pos.at('A'), keys.key_to_pos.at(code[0])})){
+        sub_ret = std::min(sub_ret, process_key_pad_recursive_size_smallest(sub, keys, paths, depth+1, max_depth, cache));
+    }
+    ret += sub_ret;
+    for(int i=1; i<code.size(); ++i){
+        char a = code[i-1];
+        char b = code[i];
+        size_t sub_ret = UINT64_MAX;
+        for(auto& sub : paths.at({keys.key_to_pos.at(a), keys.key_to_pos.at(b)})){
+            sub_ret = std::min(sub_ret, process_key_pad_recursive_size_smallest(sub, keys, paths, depth+1, max_depth, cache));
+        }
+        ret += sub_ret;
+    }
+
+    cache[{code,depth}] = ret;
+    return ret;
+}
+
 std::string process_num_pad(const std::string& code, const bimap_t& keys, const std::map<num_path_t, std::string>& paths){
     std::string path;
     path += paths.at({keys.key_to_pos.at('A'), keys.key_to_pos.at(code[0])});
@@ -329,7 +429,7 @@ std::string process_num_pad(const std::string& code, const bimap_t& keys, const 
     return path;
 }
 
-size_t part1(const codes_t& codes)
+size_t part1(const codes_t& codes, int num_bots)
 {
     /*
 
@@ -433,18 +533,19 @@ size_t part1(const codes_t& codes)
     dir_keys.insert('<', { 0, 1 });
     dir_keys.insert('A', { 2, 0 });
 
-    std::map<num_path_t, std::string> num_paths;
+    //std::map<num_path_t, std::string> num_paths;
+    std::map<num_path_t, std::vector<std::string>> num_paths;
 
-
-    std::cout << std::endl;
 
     std::map<num_path_t, std::string> dir_paths0;
+    std::map<num_path_t, std::vector<std::string>> dir_paths_many;
 
     for(auto i=dir_keys.key_to_pos.begin(); i!=dir_keys.key_to_pos.end(); ++i){
         for(auto j=i; j!=dir_keys.key_to_pos.end(); ++j){
         
             {
                 auto path = bfs(dir_keys, { 2,1 }, { 0,0 }, i->second, j->second);
+                auto paths2 = bfs3(dir_keys, { 2,1 }, { 0,0 }, i->second, j->second);
 
                 //for(auto& path : paths){
                     std::string path_str;
@@ -454,12 +555,23 @@ size_t part1(const codes_t& codes)
                     path_str += 'A';
 
                     dir_paths0[{i->second, j->second}] = path_str;
-                    std::cout << "'" << i->first << "': " << i->second << " --> " <<  "'" << j->first << "': " << j->second << " path: " << path_str  << std::endl;
+                    //std::cout << "'" << i->first << "': " << i->second << " --> " <<  "'" << j->first << "': " << j->second << " path: " << path_str  << std::endl;
                 //}
+
+                for(auto& path2 : paths2){
+                    std::string path_str;
+                    for(int i=1; i<path2.size(); ++i) {
+                        path_str += dirs[path2[i] - path2[i-1]];
+                    }
+                    path_str += 'A';
+
+                    dir_paths_many[{i->second, j->second}].push_back(path_str);
+                }
             }
 
             {
                 auto path = bfs(dir_keys, { 2,1 }, { 0,0 }, j->second, i->second);
+                auto paths2 = bfs3(dir_keys, { 2,1 }, { 0,0 }, j->second, i->second);
 
                 std::string path_str;
                 for(int i=1; i<path.size(); ++i) {
@@ -468,7 +580,18 @@ size_t part1(const codes_t& codes)
                 path_str += 'A';
 
                 dir_paths0[{j->second, i->second}] = path_str;
-                std::cout << "'" << j->first << "': " << j->second << " --> " <<  "'" << i->first << "': " << i->second << " path: " << path_str  << std::endl;
+                //std::cout << "'" << j->first << "': " << j->second << " --> " <<  "'" << i->first << "': " << i->second << " path: " << path_str  << std::endl;
+
+                for(auto& path2 : paths2){
+                    std::string path_str;
+                    for(int i=1; i<path2.size(); ++i) {
+                        path_str += dirs[path2[i] - path2[i-1]];
+                    }
+                    path_str += 'A';
+
+                    dir_paths_many[{j->second, i->second}].push_back(path_str);
+                }
+
             }
             
             //dir_paths[{j->second, i->second}] = inverse(path_str);
@@ -480,15 +603,16 @@ size_t part1(const codes_t& codes)
     }
 
     auto dir_paths = dir_paths0;
-    for(auto& [path, str] : dir_paths){
+    /*for(auto& [path, str] : dir_paths){
         std::cout << str << " -> ";
         //str = process_key_pad(str, dir_keys, dir_paths0);
         //str = process_key_pad(str, dir_keys, dir_paths0);
         std::cout << str << std::endl;
-    }
+    }*/
 
+    //int num_bots = 25;
 
-    std::cout << std::endl;
+    //std::cout << std::endl;
 
     for(auto i=num_keys.key_to_pos.begin(); i!=num_keys.key_to_pos.end(); ++i){
         for(auto j=i; j!=num_keys.key_to_pos.end(); ++j){
@@ -496,9 +620,6 @@ size_t part1(const codes_t& codes)
             {
                 auto paths = bfs3(num_keys, { 2,3 }, { 0,3 }, i->second, j->second);
 
-                if(paths.size() > 1){
-                    std::cout << "bigger" << std::endl;
-                }
                 for(auto& path : paths){
                     std::string path_str;
                     for(int i = 1; i<path.size(); ++i) {
@@ -506,20 +627,36 @@ size_t part1(const codes_t& codes)
                     }
                     path_str += 'A';
 
+                #if 0
                     if(num_paths.count({i->second, j->second})){
+                    #if 0
                         std::string path_str0 = process_num_pad(path_str, dir_keys, dir_paths);
                         path_str0 = process_num_pad(path_str0, dir_keys, dir_paths);
 
                         std::string path_str1 = process_num_pad(num_paths[{i->second, j->second}], dir_keys, dir_paths);
-                         path_str1 = process_num_pad(path_str1, dir_keys, dir_paths);
+                        path_str1 = process_num_pad(path_str1, dir_keys, dir_paths);
 
                         if(path_str0.size() < path_str1.size()){
                             num_paths[{i->second, j->second}] = path_str;
                         }
-                        std::cout << "'" << i->first << "': " << i->second << " --> " <<  "'" << j->first << "': " << j->second << " path: " << path_str  << std::endl;
+                    #endif
+
+                        size_t size0 = process_key_pad_recursive_size(path_str, dir_keys, dir_paths, 0, num_bots, cache_t());
+                        size_t size1 = process_key_pad_recursive_size(num_paths[{i->second, j->second}], dir_keys, dir_paths, 0, num_bots, cache_t());
+
+                        if(size0 < size1){
+                            num_paths[{i->second, j->second}] = path_str;
+                        }
+
+                        //std::cout << "'" << i->first << "': " << i->second << " --> " <<  "'" << j->first << "': " << j->second << " path: " << path_str  << std::endl;
                     }else{
                         num_paths[{i->second, j->second}] = path_str;
                     }
+                #endif
+
+
+                    num_paths[{i->second, j->second}].push_back(path_str);
+
                 }
             }
 
@@ -533,7 +670,9 @@ size_t part1(const codes_t& codes)
                     }
                     path_str += 'A';
 
+                #if 0
                     if(num_paths.count({j->second, i->second})){
+                    #if 0
                         std::string path_str0 = process_num_pad(path_str, dir_keys, dir_paths);
                         path_str0 = process_num_pad(path_str0, dir_keys, dir_paths);
 
@@ -543,10 +682,24 @@ size_t part1(const codes_t& codes)
                         if(path_str0.size() < path_str1.size()){
                             num_paths[{j->second, i->second}] = path_str;
                         }
-                        std::cout << "'" << j->first << "': " << j->second << " --> " <<  "'" << i->first << "': " << i->second << " path: " << path_str  << std::endl;
+                    #endif
+                        
+                        size_t size0 = process_key_pad_recursive_size(path_str, dir_keys, dir_paths, 0, num_bots, cache_t());
+                        size_t size1 = process_key_pad_recursive_size(num_paths[{j->second, i->second}], dir_keys, dir_paths, 0, num_bots, cache_t());
+
+                        if(size0 < size1){
+                            num_paths[{j->second, i->second}] = path_str;
+                        }
+
+
+                        //std::cout << "'" << j->first << "': " << j->second << " --> " <<  "'" << i->first << "': " << i->second << " path: " << path_str  << std::endl;
                     }else{
                         num_paths[{j->second, i->second}] = path_str;
                     }
+
+                #endif
+
+                    num_paths[{j->second, i->second}].push_back(path_str);
 
                     /*num_paths[{j->second, i->second}] = path_str;
                     std::cout << "'" << j->first << "': " << j->second << " --> " <<  "'" << i->first << "': " << i->second << " path: " << path_str  << std::endl;*/
@@ -564,24 +717,27 @@ size_t part1(const codes_t& codes)
 
     size_t sum = 0;
     for(auto& code : codes){
-        std::cout << code << std::endl;
 
-        std::string path = process_key_pad(code, num_keys, num_paths);
-        std::cout << path << std::endl;
+        //for(auto& num_path : num_paths){
+            std::set<std::string> paths; 
+            process_key_pad_many(code, 0, std::string(), num_keys, num_paths, paths);
+            //std::string path0;
 
-        path = process_key_pad(path, dir_keys, dir_paths);
-        std::cout << path << std::endl;
+            size_t len3 = UINT64_MAX;
+            for(auto& path : paths){
+                //size_t new_len = process_key_pad_recursive_size(path, dir_keys, dir_paths, 0, num_bots, cache_t());
+                size_t new_len = process_key_pad_recursive_size_smallest(path, dir_keys, dir_paths_many, 0, num_bots, cache_t());
 
-        path = process_key_pad(path, dir_keys, dir_paths);
-        std::cout << path << std::endl;
+                //std::cout << new_len << std::endl;
+                len3 = std::min(len3, new_len);
+            }
+            //std::cout << len3 << std::endl;
+            //std::cout << std::endl;
 
-        size_t len = path.size();
-        size_t num = std::stoi(code.substr(0,3));
-
-        std::cout << len << " * " << num << " = " << (len*num) << std::endl;
-        sum += len*num;
-
-        std::cout << std::endl;
+            size_t num = std::stoi(code.substr(0,3));
+            //std::cout << code << ": " << num << std::endl;
+            sum += len3*num;
+        //}
     }
 
 
@@ -654,10 +810,16 @@ void main()
     auto test_values = load_input("../src/day21/test_input.txt");
     auto actual_values = load_input("../src/day21/input.txt");
 
-    std::cout << "part1: " << part1(test_values) << std::endl;
-    std::cout << "part1: " << part1(actual_values) << std::endl;
+    std::cout << "part1: " << part1(test_values, 2) << std::endl;
+    std::cout << "part1: " << part1(actual_values, 2) << std::endl;
+
+    std::cout << "part2: " << part1(test_values, 25) << std::endl;
+    std::cout << "part2: " << part1(actual_values, 25) << std::endl;
 
     // 166048 too high
+    // 161014362301504 too low
+    // 196910339808654 is correct
+    // 413503376430618 too high
 
     //std::cout << "part2: " << part2(test_values) << std::endl;
     //std::cout << "part2: " << part2(actual_values) << std::endl;
