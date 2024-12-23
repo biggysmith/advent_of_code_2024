@@ -67,7 +67,7 @@ int part2(const std::vector<size_t>& numbers)
     std::vector<std::vector<int>> price_list(numbers.size());
     std::vector<std::vector<int>> change_list(numbers.size());
 
-    for(int i = 0; i<numbers.size(); ++i) {
+    for(int i=0; i<numbers.size(); ++i) {
         price_list[i].resize(2000);
         change_list[i].resize(2000);
         size_t secret = numbers[i];
@@ -88,9 +88,9 @@ int part2(const std::vector<size_t>& numbers)
     int max_bananas = INT_MIN;
     for(auto& seq : seq_set){
         int bananas = 0;
-        for(int i=0; i<numbers.size(); ++i){
-            if(seq_price_maps[i].count({seq})){
-                bananas += seq_price_maps[i][seq];
+        for(auto& seq_price_map : seq_price_maps){
+            if(seq_price_map.count(seq)){
+                bananas += seq_price_map[seq];
             }
         }
         max_bananas = std::max(max_bananas, bananas);
