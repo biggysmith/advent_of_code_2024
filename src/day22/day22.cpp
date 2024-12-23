@@ -49,51 +49,39 @@ struct hasher {
     }
 };
 
-using seq_set_t = std::unordered_set<seq_t, hasher>;
 using seq_price_map_t = std::unordered_map<std::array<int,4>, int, hasher>;
-
-void find_seq_set(const std::vector<int>& change_list, const std::vector<int>& price_list, seq_price_map_t& seq_price_map, seq_set_t& seq_set){
-    for(int i=0; i<change_list.size()-4; ++i){
-        seq_t arr { change_list[i+0], change_list[i+1], change_list[i+2], change_list[i+3] };
-        if(!seq_price_map.count(arr)){
-            seq_price_map[arr] = price_list[i+3];
-        }
-        seq_set.insert(arr);
-    }
-}
 
 int part2(const std::vector<size_t>& numbers)
 {
-    std::vector<std::vector<int>> price_list(numbers.size());
-    std::vector<std::vector<int>> change_list(numbers.size());
+    std::vector<int> price_list(2000);
+    std::vector<int> change_list(2000);
 
-    for(int i=0; i<numbers.size(); ++i) {
-        price_list[i].resize(2000);
-        change_list[i].resize(2000);
-        size_t secret = numbers[i];
+    seq_price_map_t seq_price_max;
+
+    int max_bananas = INT_MIN;
+
+    for(size_t number : numbers) {
+        seq_price_map_t seq_price_map;
+
+        size_t secret = number;
         for(int j=0; j<2000; ++j) {
             size_t prev_secret = secret;
             secret = next_secret_num(secret);
-            price_list[i][j] = ones(secret);
-            change_list[i][j] = ones(secret) - ones(prev_secret);
-        }
-    }
+            price_list[j] = ones(secret);
+            change_list[j] = ones(secret) - ones(prev_secret);
 
-    seq_set_t seq_set;
-    std::vector<seq_price_map_t> seq_price_maps(numbers.size());
-    for(int i=0; i<numbers.size(); ++i) {
-        find_seq_set(change_list[i], price_list[i], seq_price_maps[i], seq_set);
-    }
-
-    int max_bananas = INT_MIN;
-    for(auto& seq : seq_set){
-        int bananas = 0;
-        for(auto& seq_price_map : seq_price_maps){
-            if(seq_price_map.count(seq)){
-                bananas += seq_price_map[seq];
+            if(j >= 3){
+                seq_t arr { change_list[j-3], change_list[j-2], change_list[j-1], change_list[j-0] };
+                if(!seq_price_map.count(arr)){
+                    seq_price_map[arr] = price_list[j];
+                }
             }
         }
-        max_bananas = std::max(max_bananas, bananas);
+
+        for(auto& [seq, price] : seq_price_map){
+            seq_price_max[seq] += price;
+            max_bananas = std::max(max_bananas, seq_price_max[seq]);
+        }
     }
 
     return max_bananas;
