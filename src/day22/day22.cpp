@@ -81,7 +81,7 @@ int part2(const std::vector<size_t>& numbers)
 
     seq_set_t seq_set;
     std::vector<seq_price_map_t> seq_price_maps(numbers.size());
-    for(int i = 0; i<numbers.size(); ++i) {
+    for(int i=0; i<numbers.size(); ++i) {
         find_seq_set(change_list[i], price_list[i], seq_price_maps[i], seq_set);
     }
 
