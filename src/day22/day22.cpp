@@ -89,21 +89,13 @@ int part2(const std::vector<size_t>& numbers)
 
     int max_bananas = INT_MIN;
     for(auto& seq : seq_set){
-        std::vector<int> prices(numbers.size(), INT_MIN);
-
+        int bananas = 0;
         for(int i=0; i<numbers.size(); ++i){
             if(seq_price_maps[i].count({seq})){
-                prices[i] = seq_price_maps[i][seq];
+                bananas += seq_price_maps[i][seq];
             }
         }
-
-        int bananas = std::accumulate(prices.begin(), prices.end(), 0, [](int acc, int price){
-            return acc + (price==INT_MIN ? 0 : price);
-        });
-
-        if(bananas > max_bananas){
-            max_bananas = bananas;
-        }
+        max_bananas = std::max(max_bananas, bananas);
     }
 
     return max_bananas;
