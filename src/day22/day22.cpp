@@ -12,7 +12,7 @@ std::vector<size_t> load_input(const std::string& file){
     std::ifstream fs(file);
     std::string line;
     while (std::getline(fs, line)) {
-        ret.push_back(stoull(line));
+        ret.push_back(std::stoull(line));
     }
     return ret;
 }
