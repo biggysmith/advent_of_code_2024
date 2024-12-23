@@ -48,7 +48,7 @@ struct hasher {
     }
 };
 
-using seq_price_map_t = std::unordered_map<std::array<int,4>, int, hasher>;
+using seq_price_map_t = std::unordered_map<seq_t, int, hasher>;
 
 int part2(const std::vector<size_t>& numbers)
 {
