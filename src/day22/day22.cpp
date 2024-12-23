@@ -53,27 +53,25 @@ using seq_price_map_t = std::unordered_map<std::array<int,4>, int, hasher>;
 
 int part2(const std::vector<size_t>& numbers)
 {
-    std::vector<int> price_list(2000);
-    std::vector<int> change_list(2000);
-
-    seq_price_map_t seq_price_max;
-
     int max_bananas = INT_MIN;
+    seq_t change_seq;
+    seq_price_map_t seq_price_max;
 
     for(size_t number : numbers) {
         seq_price_map_t seq_price_map;
 
         size_t secret = number;
-        for(int j=0; j<2000; ++j) {
+        for(int i=0; i<2000; ++i) {
             size_t prev_secret = secret;
             secret = next_secret_num(secret);
-            price_list[j] = ones(secret);
-            change_list[j] = ones(secret) - ones(prev_secret);
 
-            if(j >= 3){
-                seq_t arr { change_list[j-3], change_list[j-2], change_list[j-1], change_list[j-0] };
+            int price_i = ones(secret);
+            change_seq[i % 4] = ones(secret) - ones(prev_secret);
+
+            if(i >= 3){
+                seq_t arr { change_seq[(i-3) % 4], change_seq[(i-2) % 4], change_seq[(i-1) % 4], change_seq[i % 4] };
                 if(!seq_price_map.count(arr)){
-                    seq_price_map[arr] = price_list[j];
+                    seq_price_map[arr] = price_i;
                 }
             }
         }
