@@ -5,7 +5,6 @@
 #include <string>
 #include <algorithm>
 #include <array>
-#include <unordered_set>
 #include <unordered_map>
 
 std::vector<size_t> load_input(const std::string& file){
