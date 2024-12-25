@@ -13,10 +13,8 @@ using wires_t = std::unordered_map<std::string, bool>;
 struct gate_t {
     std::string in0, op, in1, out;
 
-    bool is_in0_xy() const { return in0[0] == 'x' || in0[0] == 'y'; };
-    bool is_in1_xy() const { return in1[0] == 'x' || in1[0] == 'y'; };
-    bool is_in0_00() const { return in0.substr(1) == "00"; };
-    bool is_in1_00() const { return in1.substr(1) == "00"; };
+    bool is_in_xy() const { return (in0[0] == 'x' || in0[0] == 'y') && (in1[0] == 'x' || in1[0] == 'y'); };
+    bool is_in_00() const { return in0.substr(1) == "00" && in1.substr(1) == "00"; };
 };
 
 struct circuit_t {
@@ -89,17 +87,17 @@ auto part2(const circuit_t& circuit)
             wires.insert(gate.out); // a xor b -> z breaks circuit
         }
 
-        if(gate.out[0]!='z' && !gate.is_in0_xy() && !gate.is_in1_xy() && gate.op == "XOR"){
+        if(gate.out[0]!='z' && !gate.is_in_xy() && gate.op == "XOR"){
             wires.insert(gate.out); // non-xy xor non-xy -> non-z breaks circuit
         }
 
-        if (gate.op == "XOR" && gate.is_in0_xy() && gate.is_in1_xy() && !gate.is_in0_00() && !gate.is_in1_00()) {
+        if (gate.op == "XOR" && gate.is_in_xy() && !gate.is_in_00()) {
             if(bool not_in_later_xor_gate = std::none_of(circuit.gates.begin(), circuit.gates.end(), [&](auto& g) { return (g.in0 == gate.out || g.in1 == gate.out) && g.op == "XOR"; })){
                 wires.insert(gate.out); // (xy xor xy -> out) and !(out xor b -> c) or !(a xor out -> c) breaks circuit
             }
         }
 
-        if (gate.op == "AND" && gate.is_in0_xy() && gate.is_in1_xy() && !gate.is_in0_00() && !gate.is_in1_00()) {
+        if (gate.op == "AND" && gate.is_in_xy() && !gate.is_in_00()) {
             if(bool not_in_later_or_gate = std::none_of(circuit.gates.begin(), circuit.gates.end(), [&](auto& g) { return (g.in0 == gate.out || g.in1 == gate.out) && g.op == "OR"; })){
                 wires.insert(gate.out); // (xy and xy -> out) and !(out or b -> c) or !(a or out -> c) breaks circuit
             }
