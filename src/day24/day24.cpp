@@ -84,7 +84,7 @@ auto part2(const circuit_t& circuit)
     for(auto& gate : circuit.gates)
     {
         if(gate.out[0]=='z' && gate.op != "XOR" && gate.out.substr(0) != zlast){
-            wires.insert(gate.out); // a xor b -> z breaks circuit
+            wires.insert(gate.out); // both (a or b -> z), (a and b -> z) breaks circuit
         }
 
         if(gate.out[0]!='z' && !gate.is_in_xy() && gate.op == "XOR"){
@@ -93,13 +93,13 @@ auto part2(const circuit_t& circuit)
 
         if (gate.op == "XOR" && gate.is_in_xy() && !gate.is_in_00()) {
             if(bool not_in_later_xor_gate = std::none_of(circuit.gates.begin(), circuit.gates.end(), [&](auto& g) { return (g.in0 == gate.out || g.in1 == gate.out) && g.op == "XOR"; })){
-                wires.insert(gate.out); // (xy xor xy -> out) and !(out xor b -> c) or !(a xor out -> c) breaks circuit
+                wires.insert(gate.out); // (xy xor xy -> out) then !(out xor b -> c) or !(a xor out -> c) breaks circuit
             }
         }
 
         if (gate.op == "AND" && gate.is_in_xy() && !gate.is_in_00()) {
             if(bool not_in_later_or_gate = std::none_of(circuit.gates.begin(), circuit.gates.end(), [&](auto& g) { return (g.in0 == gate.out || g.in1 == gate.out) && g.op == "OR"; })){
-                wires.insert(gate.out); // (xy and xy -> out) and !(out or b -> c) or !(a or out -> c) breaks circuit
+                wires.insert(gate.out); // (xy and xy -> out) then !(out or b -> c) or !(a or out -> c) breaks circuit
             }
         }
     }
