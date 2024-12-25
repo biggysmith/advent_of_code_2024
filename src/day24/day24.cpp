@@ -89,8 +89,8 @@ auto part2(const circuit_t& circuit)
             wires.insert(gate.out); // a xor b -> z breaks circuit
         }
 
-        if(gate.out[0]!='z' && (gate.in0[0] != 'x' || gate.in1[0] != 'y') && (gate.in0[0] != 'y' || gate.in1[0] != 'x') && gate.op == "XOR"){
-            wires.insert(gate.out); // xy xor xy -> non-z breaks circuit
+        if(gate.out[0]!='z' && !gate.is_in0_xy() && !gate.is_in1_xy() && gate.op == "XOR"){
+            wires.insert(gate.out); // non-xy xor non-xy -> non-z breaks circuit
         }
 
         if (gate.op == "XOR" && gate.is_in0_xy() && gate.is_in1_xy() && !gate.is_in0_00() && !gate.is_in1_00()) {
