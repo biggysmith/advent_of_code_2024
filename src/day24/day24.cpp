@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <numeric>
 
-using wires_t = std::unordered_map<std::string, int>;
+using wires_t = std::unordered_map<std::string, bool>;
 
 struct gate_t {
     std::string in0, op, in1, out;
@@ -70,7 +70,7 @@ uint64_t part1(circuit_t circuit)
 
     uint64_t binary = 0;
     for(int z=0; z<circuit.zcount; ++z){
-        if(circuit.state[(z < 10 ? "z0" : "z") + std::to_string(z)] == 1){
+        if(circuit.state[(z < 10 ? "z0" : "z") + std::to_string(z)]){
             binary |= 1ull << z;
         }
     }
